@@ -240,10 +240,10 @@ for animal in ANIMAL_TYPES:
         compiled_dataframes[df_name] = compiled_df
         
         # Save the final compiled DataFrame to CSV and Feather (as requested)
-        csv_file_name = f'Compiled_{animal}_Inventory_2002_2022.csv'
-        feather_file_name = f'Compiled_{animal}_Inventory_2002_2022.feather'
+        csv_file_name = f'qs_census2002_{animal}_Inventory_2002_2022.csv'
+        feather_file_name = f'qs_census2002_{animal}_sum_value_2002_2022.feather'
         
-        compiled_df.to_csv(os.path.join(TARGET_DIR, csv_file_name))
+        # compiled_df.to_csv(os.path.join(TARGET_DIR, csv_file_name))
         compiled_df.to_feather(os.path.join(TARGET_DIR, feather_file_name))
         
         print(f"✅ Successfully compiled and saved {feather_file_name} with {len(compiled_df)} rows.")
@@ -411,27 +411,27 @@ def plot_and_save_comparison(df, animal_type, color='m'):
         if d is not None:
             d.columns = d.columns.astype(str)
 
-    # Plotting
-    plt.figure(figsize=(12, 6))
+    # # Plotting
+    # plt.figure(figsize=(12, 6))
     
-    if poly_df is not None:
-        plt.plot(poly_df.mean(), label='Polynomial Regression', marker='o', color='red')
-    if spline_df is not None:
-        plt.plot(spline_df.mean(), label='Spline Interpolation', marker='s', color='green')
-    if pchip_df is not None:
-        plt.plot(pchip_df.mean(), label='PCHIP Interpolation', marker='^', color='blue')
+    # if poly_df is not None:
+    #     plt.plot(poly_df.mean(), label='Polynomial Regression', marker='o', color='red')
+    # if spline_df is not None:
+    #     plt.plot(spline_df.mean(), label='Spline Interpolation', marker='s', color='green')
+    # if pchip_df is not None:
+    #     plt.plot(pchip_df.mean(), label='PCHIP Interpolation', marker='^', color='blue')
         
-    # Plot original mean data (only for available years)
-    df_mean = df.T.mean(axis=1)
-    plt.plot(df_mean.index, df_mean.values, label=f'USDA {animal_type} (Observed)', linestyle='-.', marker='*', color=color, lw=2.5)
+    # # Plot original mean data (only for available years)
+    # df_mean = df.T.mean(axis=1)
+    # plt.plot(df_mean.index, df_mean.values, label=f'USDA {animal_type} (Observed)', linestyle='-.', marker='*', color=color, lw=2.5)
 
-    plt.ylabel('Mean Livestock Population (Head)')
-    plt.title(f'{animal_type.replace("_", " ")} Population Prediction (1985-2022)')
-    plt.xticks(np.arange(2002, 2023, 5), rotation=45)
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
+    # plt.ylabel('Mean Livestock Population (Head)')
+    # plt.title(f'{animal_type.replace("_", " ")} Population Prediction (1985-2022)')
+    # plt.xticks(np.arange(2002, 2023, 5), rotation=45)
+    # plt.legend()
+    # plt.grid(True)
+    # plt.tight_layout()
+    # plt.show()
 
 # =========================================================
 ## 7. Execution of Plotting and Final Saving
@@ -439,9 +439,152 @@ def plot_and_save_comparison(df, animal_type, color='m'):
 
 print("\n--- Generating Interpolation Plots and Saving Final DataFrames ---")
 
-# plot_and_save_comparison(qs_census2002_Dairy_Cattle_sum_value_2002_2022, 'Dairy_Cattle', color='darkblue')
-# plot_and_save_comparison(qs_census2002_Beef_Cattle_sum_value_2002_2022, 'Beef_Cattle', color='brown')
-# plot_and_save_comparison(qs_census2002_Hogs_sum_value_2002_2022, 'Hogs', color='purple')
-# plot_and_save_comparison(qs_census2002_Poultry_sum_value_2002_2022, 'Poultry', color='orange')
+plot_and_save_comparison(qs_census2002_Dairy_Cattle_sum_value_2002_2022, 'Dairy_Cattle', color='darkblue')
+plot_and_save_comparison(qs_census2002_Beef_Cattle_sum_value_2002_2022, 'Beef_Cattle', color='brown')
+plot_and_save_comparison(qs_census2002_Hogs_sum_value_2002_2022, 'Hogs', color='purple')
+plot_and_save_comparison(qs_census2002_Poultry_sum_value_2002_2022, 'Poultry', color='orange')
 
 print("\n--- All Steps Complete: Data Loaded, Processed, Compiled, Interpolated, Plotted, and Saved ---")
+
+
+
+
+
+
+# ----------------- ML data prepared for each Livestock -----------------------------
+
+# Define the base data directory
+data_dir = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\data\proccessed_data"
+livestock_census_dir = os.path.join(data_dir, "livestock_census")
+
+# --- 1. Load the Main ML Data and Normalize County Name ---
+print("1. Loading and preparing main ML data...")
+ml_data_ready = os.path.join(data_dir, "ML", "ML_data_prepared_all_1960_1980.feather")
+ML_data_prepared_all_1960_1980 = pd.read_feather(ml_data_ready)
+
+# Normalize County_Name to uppercase for matching
+ML_data_prepared_all_1960_1980['County_Name'] = ML_data_prepared_all_1960_1980['County_Name'].str.upper()
+
+
+# --- 2. Load Livestock Census Data and Extract County Indices (County Names) ---
+print("2. Loading livestock census data and extracting county names...")
+# Beef Cattle
+beef_path = os.path.join(livestock_census_dir, "qs_census2002_Beef_Cattle_sum_value_2002_2022.feather")
+qs_census2002_Beef_Cattle_sum_value_2002_2022 = pd.read_feather(beef_path)
+# Corrected line to pull from index, convert to string, and uppercase
+county_beef = [str(x).upper() for x in qs_census2002_Beef_Cattle_sum_value_2002_2022.index.tolist()]
+
+# Dairy Cattle
+dairy_path = os.path.join(livestock_census_dir, "qs_census2002_Dairy_Cattle_sum_value_2002_2022.feather")
+qs_census2002_Dairy_Cattle_sum_value_2002_2022 = pd.read_feather(dairy_path)
+# Corrected line
+county_dairy = [str(x).upper() for x in qs_census2002_Dairy_Cattle_sum_value_2002_2022.index.tolist()]
+
+# Hogs
+hogs_path = os.path.join(livestock_census_dir, "qs_census2002_Hogs_sum_value_2002_2022.feather")
+qs_census2002_Hogs_sum_value_2002_2022 = pd.read_feather(hogs_path)
+# Corrected line
+county_hogs = [str(x).upper() for x in qs_census2002_Hogs_sum_value_2002_2022.index.tolist()]
+
+# Poultry
+poultry_path = os.path.join(livestock_census_dir, "qs_census2002_Poultry_sum_value_2002_2022.feather")
+qs_census2002_Poultry_sum_value_2002_2022 = pd.read_feather(poultry_path)
+# Corrected line
+county_poultry = [str(x).upper() for x in qs_census2002_Poultry_sum_value_2002_2022.index.tolist()]
+
+# --- 3. Filter the Main DataFrames by Livestock County Sets ---
+print("3. Filtering main ML data by county lists...")
+
+# Beef Cattle
+ML_data_prepared_all_1960_1980_beef = ML_data_prepared_all_1960_1980[
+    ML_data_prepared_all_1960_1980['County_Name'].isin(county_beef)
+].reset_index(drop=True)
+
+# Dairy Cattle
+ML_data_prepared_all_1960_1980_dairy = ML_data_prepared_all_1960_1980[
+    ML_data_prepared_all_1960_1980['County_Name'].isin(county_dairy)
+].reset_index(drop=True)
+
+# Hogs
+ML_data_prepared_all_1960_1980_hogs = ML_data_prepared_all_1960_1980[
+    ML_data_prepared_all_1960_1980['County_Name'].isin(county_hogs)
+].reset_index(drop=True)
+
+# Poultry
+ML_data_prepared_all_1960_1980_poultry = ML_data_prepared_all_1960_1980[
+    ML_data_prepared_all_1960_1980['County_Name'].isin(county_poultry)
+].reset_index(drop=True)
+
+
+# --- 4. Save the Filtered DataFrames ---
+print("4. Saving filtered dataframes to .feather files...")
+
+dataframes_to_save = {
+    "ML_data_prepared_all_1960_1980_beef": ML_data_prepared_all_1960_1980_beef,
+    "ML_data_prepared_all_1960_1980_dairy": ML_data_prepared_all_1960_1980_dairy,
+    "ML_data_prepared_all_1960_1980_hogs": ML_data_prepared_all_1960_1980_hogs,
+    "ML_data_prepared_all_1960_1980_poultry": ML_data_prepared_all_1960_1980_poultry,
+}
+
+for name, df in dataframes_to_save.items():
+    output_path = os.path.join(livestock_census_dir, f"{name}.feather")
+    df.to_feather(output_path)
+    print(f"   - Saved {name} (Shape: {df.shape}) to:\n     {output_path}")
+
+print("\n✅ All filtered DataFrames successfully saved.")
+
+
+if __name__ == '__main__':
+    pass
+
+
+
+# ----------------------- ML data for prediction (1985-2022): ----------------------
+
+data_dir = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\data\proccessed_data"
+livestock_census_dir = os.path.join(data_dir, "livestock_census")
+
+# --- Load and filter climate data ---
+climate_path = os.path.join(data_dir, "climatic_factors", "Annual_Climate_factors_County_Data_Ratios_and_Area_1960_2022.feather")
+Annual_Climate_factors_County_Data_and_Ratios_1960_2022 = pd.read_feather(climate_path)
+
+Annual_Climate_factors_County_Data_and_Ratios_1960_2022_filtered = (
+    Annual_Climate_factors_County_Data_and_Ratios_1960_2022[
+        (Annual_Climate_factors_County_Data_and_Ratios_1960_2022["Year"] >= 1985)
+        & (Annual_Climate_factors_County_Data_and_Ratios_1960_2022["Year"] <= 2022)
+    ]
+)
+
+ML_data_prepared_all_1985_2022 = (
+    Annual_Climate_factors_County_Data_and_Ratios_1960_2022_filtered
+    .sort_values(by=["State_Name", "County_Name", "Year"])
+    .reset_index(drop=True)
+)
+
+ML_data_prepared_all_1985_2022['County_Name'] = ML_data_prepared_all_1985_2022['County_Name'].str.upper()
+
+# --- Helper function to subset data by livestock type ---
+def filter_by_livestock(feather_name):
+    path = os.path.join(livestock_census_dir, feather_name)
+    df = pd.read_feather(path)
+    county_list = [str(x).upper() for x in df.index.tolist()]
+    filtered = ML_data_prepared_all_1985_2022[
+        ML_data_prepared_all_1985_2022['County_Name'].isin(county_list)
+    ].reset_index(drop=True)
+    return filtered
+
+# --- Subset by livestock type ---
+ML_data_prepared_all_1985_2022_dairy = filter_by_livestock("qs_census2002_Dairy_Cattle_sum_value_2002_2022.feather")
+ML_data_prepared_all_1985_2022_beef = filter_by_livestock("qs_census2002_Beef_Cattle_sum_value_2002_2022.feather")
+ML_data_prepared_all_1985_2022_hogs = filter_by_livestock("qs_census2002_Hogs_sum_value_2002_2022.feather")
+ML_data_prepared_all_1985_2022_poultry = filter_by_livestock("qs_census2002_Poultry_sum_value_2002_2022.feather")
+
+# --- Save all datasets ---
+ML_data_prepared_all_1985_2022.to_feather(os.path.join(livestock_census_dir, "ML_data_prepared_all_1985_2022.feather"))
+ML_data_prepared_all_1985_2022_dairy.to_feather(os.path.join(livestock_census_dir, "ML_data_prepared_all_1985_2022_dairy.feather"))
+ML_data_prepared_all_1985_2022_beef.to_feather(os.path.join(livestock_census_dir, "ML_data_prepared_all_1985_2022_beef.feather"))
+ML_data_prepared_all_1985_2022_hogs.to_feather(os.path.join(livestock_census_dir, "ML_data_prepared_all_1985_2022_hogs.feather"))
+ML_data_prepared_all_1985_2022_poultry.to_feather(os.path.join(livestock_census_dir, "ML_data_prepared_all_1985_2022_poultry.feather"))
+
+print("✅ All DataFrames have been successfully saved to:")
+print(livestock_census_dir)
