@@ -12,7 +12,7 @@ except Exception:
 # Load the ERA5-LAND Monthly dataset
 dataset = (ee.ImageCollection("ECMWF/ERA5_LAND/MONTHLY_AGGR")
            .select(["dewpoint_temperature_2m", "total_precipitation_sum", "temperature_2m"])
-           .filterDate("1960-01-01", "2022-12-31"))
+           .filterDate("2020-01-01", "2022-12-31"))
 
 # --- Geospatial Feature Processing (Modified for Area) ---
 
@@ -77,35 +77,85 @@ def annualData(year):
     annual = dewpoint_mean.addBands(temp_mean).addBands(precip_sum).set("year", year)
     return annual
 
-# Function to extract annual data at each state centroid
-def extractState(image):
+
+
+# # Function to extract annual data at each state centroid
+# def extractState(image):
+#     year = image.get("year")
+#     pointStats = image.sampleRegions(**{
+#         "collection": statePoints,
+#         "scale": 10000,
+#         # Now we also request State_Area
+#         "properties": ["NAME", "State_Area"], 
+#         "tileScale": 2
+#     }).map(lambda feature: ee.Feature(None, {
+#         "State_Name": feature.get("NAME"),
+#         "Year": ee.Number(year),
+#         "dewpoint_temperature_2m": feature.get("dewpoint_temperature_2m"),
+#         "total_precipitation_sum": feature.get("total_precipitation_sum"),
+#         "temperature_2m": feature.get("temperature_2m"),
+#         "State_Area": feature.get("State_Area")
+#     }))
+#     return pointStats
+
+# # Function to extract annual data at each county centroid
+# def extractCounty(image):
+#     year = image.get("year")
+#     pointStats = image.sampleRegions(**{
+#         "collection": countyPoints,
+#         "scale": 10000,
+#         # Now we also request County_Area
+#         "properties": ["NAME", "STATEFP", "County_Area"], 
+#         "tileScale": 2
+#     }).map(lambda feature: ee.Feature(None, {
+#         "County_Name": feature.get("NAME"),
+#         "STATEFP": feature.get("STATEFP"),
+#         "Year": ee.Number(year),
+#         "dewpoint_temperature_2m": feature.get("dewpoint_temperature_2m"),
+#         "total_precipitation_sum": feature.get("total_precipitation_sum"),
+#         "temperature_2m": feature.get("temperature_2m"),
+#         "County_Area": feature.get("County_Area")
+#     }))
+#     return pointStats
+
+# Function to extract annual data as ZONAL MEAN for each state
+def extractState_Zonal(image):
     year = image.get("year")
-    pointStats = image.sampleRegions(**{
-        "collection": statePoints,
-        "scale": 10000,
-        # Now we also request State_Area
-        "properties": ["NAME", "State_Area"], 
-        "tileScale": 2
-    }).map(lambda feature: ee.Feature(None, {
+    
+    # Use reduceRegions to get the mean value across the entire state polygon
+    state_stats = image.reduceRegions(**{
+        'collection': stateFeatures_with_area, # Use the polygons, not the centroids
+        'reducer': ee.Reducer.mean(),        # IMPORTANT: Compute the MEAN of all pixels in the polygon
+        'scale': 10000,                      # Matching your current scale
+        'tileScale': 2
+    })
+    
+    # Map to rename and include the 'Year' property
+    pointStats = state_stats.map(lambda feature: ee.Feature(None, {
         "State_Name": feature.get("NAME"),
         "Year": ee.Number(year),
+        # The keys will now be the band names (dewpoint_temperature_2m, etc.)
         "dewpoint_temperature_2m": feature.get("dewpoint_temperature_2m"),
         "total_precipitation_sum": feature.get("total_precipitation_sum"),
         "temperature_2m": feature.get("temperature_2m"),
-        "State_Area": feature.get("State_Area")
+        "State_Area": feature.get("State_Area") # Area is still a property of the feature
     }))
     return pointStats
 
-# Function to extract annual data at each county centroid
-def extractCounty(image):
+# Function to extract annual data as ZONAL MEAN for each county
+def extractCounty_Zonal(image):
     year = image.get("year")
-    pointStats = image.sampleRegions(**{
-        "collection": countyPoints,
-        "scale": 10000,
-        # Now we also request County_Area
-        "properties": ["NAME", "STATEFP", "County_Area"], 
-        "tileScale": 2
-    }).map(lambda feature: ee.Feature(None, {
+    
+    # Use reduceRegions to get the mean value across the entire county polygon
+    county_stats = image.reduceRegions(**{
+        'collection': countyFeatures_with_area, # Use the polygons, not the centroids
+        'reducer': ee.Reducer.mean(),
+        'scale': 10000,
+        'tileScale': 2
+    })
+    
+    # Map to rename and include the 'Year' property
+    pointStats = county_stats.map(lambda feature: ee.Feature(None, {
         "County_Name": feature.get("NAME"),
         "STATEFP": feature.get("STATEFP"),
         "Year": ee.Number(year),
@@ -116,9 +166,11 @@ def extractCounty(image):
     }))
     return pointStats
 
+
 # --- Data Fetching Loop (Modified to handle new properties) ---
 
-years = list(range(1960, 2023))
+
+years = list(range(2020, 2023))
 data_state = []
 data_county = []
 
@@ -126,44 +178,98 @@ for year in years:
     print(f"Processing year {year}...")
     annual_image = annualData(year)
     
-    # Fetch state data for the year
-    results_state = extractState(annual_image)
+    # Fetch state data for the year using ZONAL MEAN
+    results_state = extractState_Zonal(annual_image) # <-- SWITCHED TO ZONAL
     try:
         results_state_list = results_state.getInfo()
         features_state = results_state_list['features']
         for feature in features_state:
             props = feature['properties']
             data_state.append({
+                # Keys match the final mapped properties in extractState_Zonal
                 "State_Name": props.get("State_Name"),
                 "Year": props.get("Year"),
                 "dewpoint_temperature_2m": props.get("dewpoint_temperature_2m"),
                 "total_precipitation_sum": props.get("total_precipitation_sum"),
                 "temperature_2m": props.get("temperature_2m"),
-                "State_Area": props.get("State_Area") # Added State_Area
+                "State_Area": props.get("State_Area")
             })
     except Exception as e:
         print(f"Error fetching state results for year {year}: {e}")
+        # Consider a better error handling mechanism for large runs, like logging the year and continuing
         raise
     
-    # Fetch county data for the year
-    results_county = extractCounty(annual_image)
+    # Fetch county data for the year using ZONAL MEAN
+    results_county = extractCounty_Zonal(annual_image) # <-- SWITCHED TO ZONAL
     try:
         results_county_list = results_county.getInfo()
         features_county = results_county_list['features']
         for feature in features_county:
             props = feature['properties']
             data_county.append({
+                # Keys match the final mapped properties in extractCounty_Zonal
                 "County_Name": props.get("County_Name"),
                 "STATEFP": props.get("STATEFP"),
                 "Year": props.get("Year"),
                 "dewpoint_temperature_2m": props.get("dewpoint_temperature_2m"),
                 "total_precipitation_sum": props.get("total_precipitation_sum"),
                 "temperature_2m": props.get("temperature_2m"),
-                "County_Area": props.get("County_Area") # Added County_Area
+                "County_Area": props.get("County_Area")
             })
     except Exception as e:
         print(f"Error fetching county results for year {year}: {e}")
+        # Consider a better error handling mechanism for large runs
         raise
+
+# Convert to DataFrames (rest of the code is unchanged and correct)
+# df_state = pd.DataFrame(data_state).drop_duplicates(subset=["State_Name", "Year"])
+# ... (rest of your original code follows)
+# years = list(range(1960, 2023))
+# data_state = []
+# data_county = []
+
+# for year in years:
+#     print(f"Processing year {year}...")
+#     annual_image = annualData(year)
+    
+#     # Fetch state data for the year
+#     results_state = extractState(annual_image)
+#     try:
+#         results_state_list = results_state.getInfo()
+#         features_state = results_state_list['features']
+#         for feature in features_state:
+#             props = feature['properties']
+#             data_state.append({
+#                 "State_Name": props.get("State_Name"),
+#                 "Year": props.get("Year"),
+#                 "dewpoint_temperature_2m": props.get("dewpoint_temperature_2m"),
+#                 "total_precipitation_sum": props.get("total_precipitation_sum"),
+#                 "temperature_2m": props.get("temperature_2m"),
+#                 "State_Area": props.get("State_Area") # Added State_Area
+#             })
+#     except Exception as e:
+#         print(f"Error fetching state results for year {year}: {e}")
+#         raise
+    
+#     # Fetch county data for the year
+#     results_county = extractCounty(annual_image)
+#     try:
+#         results_county_list = results_county.getInfo()
+#         features_county = results_county_list['features']
+#         for feature in features_county:
+#             props = feature['properties']
+#             data_county.append({
+#                 "County_Name": props.get("County_Name"),
+#                 "STATEFP": props.get("STATEFP"),
+#                 "Year": props.get("Year"),
+#                 "dewpoint_temperature_2m": props.get("dewpoint_temperature_2m"),
+#                 "total_precipitation_sum": props.get("total_precipitation_sum"),
+#                 "temperature_2m": props.get("temperature_2m"),
+#                 "County_Area": props.get("County_Area") # Added County_Area
+#             })
+#     except Exception as e:
+#         print(f"Error fetching county results for year {year}: {e}")
+#         raise
 
 # Convert to DataFrames
 df_state = pd.DataFrame(data_state).drop_duplicates(subset=["State_Name", "Year"])
