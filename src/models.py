@@ -5,124 +5,124 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from scripts.core_imports import *
 
 # # --- Data Loading ---
-# data_dir = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\data\proccessed_data\livestock_census"
+data_dir = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\data\proccessed_data\livestock_census"
 
-# # Load the filtered datasets
-# ML_data_prepared_all_1960_1980_dairy = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1960_1980_dairy.feather"))
-# ML_data_prepared_all_1960_1980_beef = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1960_1980_beef.feather"))
-# ML_data_prepared_all_1960_1980_hogs = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1960_1980_hogs.feather"))
-# ML_data_prepared_all_1960_1980_poultry = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1960_1980_poultry.feather"))
+# Load the filtered datasets
+ML_data_prepared_all_1960_1980_dairy = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1960_1980_dairy.feather"))
+ML_data_prepared_all_1960_1980_beef = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1960_1980_beef.feather"))
+ML_data_prepared_all_1960_1980_hogs = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1960_1980_hogs.feather"))
+ML_data_prepared_all_1960_1980_poultry = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1960_1980_poultry.feather"))
 
 
-# # --- ANNLivestock Class Definition ---
-# class ANNLivestock:
-#     def __init__(self, datasets):
-#         """
-#         Initialize with dictionary of datasets.
-#         datasets: dict with keys 'dairy', 'beef', 'hogs', 'poultry' and values as DataFrames.
-#         """
-#         self.datasets = datasets
-#         self.models = {}
-#         self.scalers = {}
-#         self.metrics = {}
-#         self.cv = KFold(n_splits=5, shuffle=True, random_state=42)
+# --- ANNLivestock Class Definition ---
+class ANNLivestock:
+    def __init__(self, datasets):
+        """
+        Initialize with dictionary of datasets.
+        datasets: dict with keys 'dairy', 'beef', 'hogs', 'poultry' and values as DataFrames.
+        """
+        self.datasets = datasets
+        self.models = {}
+        self.scalers = {}
+        self.metrics = {}
+        self.cv = KFold(n_splits=5, shuffle=True, random_state=42)
 
-#     def preprocess(self, df, livestock_type):
-#         """Preprocess data for a specific livestock type."""
-#         # Features for the ANN model
-#         features = ['precip_county', 'temp_county','RH_county','Pr_ratio', 'Temp_ratio', 'RH_ratio', 'area_ratio']
+    def preprocess(self, df, livestock_type):
+        """Preprocess data for a specific livestock type."""
+        # Features for the ANN model
+        features = ['precip_county', 'temp_county','RH_county','Pr_ratio', 'Temp_ratio', 'RH_ratio', 'area_ratio']
         
-#         # Target variable
-#         target = 'SL_cons_ratio'
+        # Target variable
+        target = 'SL_cons_ratio'
         
-#         X = df[features].apply(pd.to_numeric, errors='coerce')
-#         y = pd.to_numeric(df[target], errors='coerce')
+        X = df[features].apply(pd.to_numeric, errors='coerce')
+        y = pd.to_numeric(df[target], errors='coerce')
         
-#         # Drop rows with NaN in features or target after conversion
-#         df_clean = pd.concat([X, y], axis=1).dropna()
-#         X, y = df_clean[X.columns], df_clean[target]
+        # Drop rows with NaN in features or target after conversion
+        df_clean = pd.concat([X, y], axis=1).dropna()
+        X, y = df_clean[X.columns], df_clean[target]
 
-#         # Robust Scaling
-#         scaler = RobustScaler()
-#         X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns, index=X.index)
-#         self.scalers[livestock_type] = scaler
-#         return X_scaled, y
+        # Robust Scaling
+        scaler = RobustScaler()
+        X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns, index=X.index)
+        self.scalers[livestock_type] = scaler
+        return X_scaled, y
 
-#     def build_model(self, input_dim):
-#         """Define ANN architecture."""
-#         model = Sequential([
-#             Dense(512, activation='relu', input_dim=input_dim),
-#             Dropout(0.2),
-#             Dense(132, activation='relu'),
-#             Dropout(0.2),
-#             Dense(132, activation='relu'),
-#             Dense(1, activation='linear') # Output layer for regression
-#         ])
-#         model.compile(optimizer='adam', loss='mse', metrics=['mae'])
-#         return model
+    def build_model(self, input_dim):
+        """Define ANN architecture."""
+        model = Sequential([
+            Dense(512, activation='relu', input_dim=input_dim),
+            Dropout(0.2),
+            Dense(132, activation='relu'),
+            Dropout(0.2),
+            Dense(132, activation='relu'),
+            Dense(1, activation='linear') # Output layer for regression
+        ])
+        model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+        return model
 
-#     def train_model(self, livestock_type):
-#         """Train ANN model for a specific livestock type."""
-#         print(f"\n--- Starting Training for {livestock_type.capitalize()} ---")
-#         if livestock_type not in self.datasets:
-#             raise ValueError(f"Dataset for {livestock_type} not found.")
+    def train_model(self, livestock_type):
+        """Train ANN model for a specific livestock type."""
+        print(f"\n--- Starting Training for {livestock_type.capitalize()} ---")
+        if livestock_type not in self.datasets:
+            raise ValueError(f"Dataset for {livestock_type} not found.")
 
-#         X_scaled, y = self.preprocess(self.datasets[livestock_type], livestock_type)
+        X_scaled, y = self.preprocess(self.datasets[livestock_type], livestock_type)
         
-#         # Ensure we have data after preprocessing
-#         if X_scaled.empty:
-#             print(f"Skipping {livestock_type}: No clean data available after preprocessing.")
-#             return
+        # Ensure we have data after preprocessing
+        if X_scaled.empty:
+            print(f"Skipping {livestock_type}: No clean data available after preprocessing.")
+            return
 
-#         X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.3, random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.3, random_state=42)
 
-#         model = self.build_model(X_scaled.shape[1])
-#         early_stop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+        model = self.build_model(X_scaled.shape[1])
+        early_stop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
 
-#         history = model.fit(
-#             X_train, y_train,
-#             validation_split=0.2, # 20% of training data used for validation
-#             epochs=50,
-#             batch_size=64,
-#             verbose=1,
-#             callbacks=[early_stop]
-#         )
+        history = model.fit(
+            X_train, y_train,
+            validation_split=0.2, # 20% of training data used for validation
+            epochs=50,
+            batch_size=64,
+            verbose=1,
+            callbacks=[early_stop]
+        )
 
-#         # Predictions and metrics
-#         train_pred = model.predict(X_train).flatten()
-#         test_pred = model.predict(X_test).flatten()
+        # Predictions and metrics
+        train_pred = model.predict(X_train).flatten()
+        test_pred = model.predict(X_test).flatten()
 
-#         metrics = {
-#             'train_rmse': np.sqrt(mean_squared_error(y_train, train_pred)),
-#             'train_r2': r2_score(y_train, train_pred),
-#             'test_rmse': np.sqrt(mean_squared_error(y_test, test_pred)),
-#             'test_r2': r2_score(y_test, test_pred)
-#         }
+        metrics = {
+            'train_rmse': np.sqrt(mean_squared_error(y_train, train_pred)),
+            'train_r2': r2_score(y_train, train_pred),
+            'test_rmse': np.sqrt(mean_squared_error(y_test, test_pred)),
+            'test_r2': r2_score(y_test, test_pred)
+        }
 
-#         self.models[livestock_type] = model
-#         self.metrics[livestock_type] = metrics
+        self.models[livestock_type] = model
+        self.metrics[livestock_type] = metrics
 
-#         print(f"\n{livestock_type.capitalize()} ANN Model Results:")
-#         print(f"Training RMSE: {metrics['train_rmse']:.4f}, R²: {metrics['train_r2']:.4f}")
-#         print(f"Test RMSE: {metrics['test_rmse']:.4f}, R²: {metrics['test_r2']:.4f}")
+        print(f"\n{livestock_type.capitalize()} ANN Model Results:")
+        print(f"Training RMSE: {metrics['train_rmse']:.4f}, R²: {metrics['train_r2']:.4f}")
+        print(f"Test RMSE: {metrics['test_rmse']:.4f}, R²: {metrics['test_r2']:.4f}")
 
-#     def train_all(self):
-#         """Train models for all livestock types."""
-#         for livestock_type in self.datasets.keys():
-#             self.train_model(livestock_type)
+    def train_all(self):
+        """Train models for all livestock types."""
+        for livestock_type in self.datasets.keys():
+            self.train_model(livestock_type)
 
 
-# # --- Execution Block ---
-# if __name__ == '__main__':
-#     datasets = {
-#         'dairy': ML_data_prepared_all_1960_1980_dairy,
-#         'beef': ML_data_prepared_all_1960_1980_beef,
-#         'hogs': ML_data_prepared_all_1960_1980_hogs,
-#         'poultry': ML_data_prepared_all_1960_1980_poultry
-#     }
+# --- Execution Block ---
+if __name__ == '__main__':
+    datasets = {
+        'dairy': ML_data_prepared_all_1960_1980_dairy,
+        'beef': ML_data_prepared_all_1960_1980_beef,
+        'hogs': ML_data_prepared_all_1960_1980_hogs,
+        'poultry': ML_data_prepared_all_1960_1980_poultry
+    }
 
-#     ann_livestock = ANNLivestock(datasets)
-#     ann_livestock.train_all()
+    ann_livestock = ANNLivestock(datasets)
+    ann_livestock.train_all()
 
 from types import MethodType
 import pickle
