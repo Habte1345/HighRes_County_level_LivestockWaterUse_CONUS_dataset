@@ -14,6 +14,9 @@ from scripts.core_imports import *  # if this imports TF, messages are now suppr
 # Set random seed
 random.seed(42)
 
+
+
+
 # Define data directory
 data_dir = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\data\proccessed_data"
 
@@ -37,12 +40,12 @@ usgs_2005_county_cons = load_usgs_county(2005, ["STATE","State-County Name","LS-
 
 # 2010
 usgs_2010_county_cons = pd.read_feather(os.path.join(data_dir, "usgs", "usgs_water_data_feather", "usgs_2010_county.feather"))
-usgs_2010_county_cons['LI_CU'] = usgs_2010_county_cons["LI-WFrTo"] * np.random.uniform(0.9, 0.98)
+usgs_2010_county_cons['LI_CU'] = usgs_2010_county_cons["LI-WFrTo"] * np.random.uniform(0.85, 0.98)  # since we don't have consumptive use we ar considering the some of portion of the withdrawal
 usgs_2010_county_cons = usgs_2010_county_cons[["STATE", "COUNTY", "LI-WFrTo", "LI_CU"]]
 
 # 2015
 usgs_2015_county_cons = pd.read_feather(os.path.join(data_dir, "usgs", "usgs_water_data_feather", "usgs_2015_county.feather"))
-usgs_2015_county_cons['LI_CU'] = usgs_2015_county_cons["LI-WFrTo"] * np.random.uniform(0.9, 0.98)
+usgs_2015_county_cons['LI_CU'] = usgs_2015_county_cons["LI-WFrTo"] * np.random.uniform(0.79, 0.99) # since we don't have consumptive use we ar considering the some of portion of the withdrawal
 usgs_2015_county_cons = usgs_2015_county_cons[["STATE", "COUNTY", "LI-WFrTo", "LI_CU"]]
 
 # Align COUNTY names for 1985 and 1990 with 2010
@@ -58,6 +61,7 @@ usgs_2010_county_cons['cons_ratio'] = usgs_2010_county_cons['LI_CU'] / usgs_2010
 usgs_2015_county_cons['cons_ratio'] = usgs_2015_county_cons['LI_CU'] / usgs_2015_county_cons['LI-WFrTo']
 
 # --- Combine into a single DataFrame ---
+# --- Combine into a single DataFrame ---
 usgs_county_cons_1985_2015 = pd.DataFrame({
     'COUNTY_NAME': usgs_1985_county_cons['COUNTY'],
     'STATE': usgs_1985_county_cons['STATE'],
@@ -68,6 +72,10 @@ usgs_county_cons_1985_2015 = pd.DataFrame({
     'cons_2010_ratio': usgs_2010_county_cons['cons_ratio'],
     'cons_2015_ratio': usgs_2015_county_cons['cons_ratio']
 }).dropna().round(3)
+# usgs_county_cons_1985_2015.set_index('COUNTY_NAME', inplace=True)
+usgs_county_cons_1985_2015 = usgs_county_cons_1985_2015.replace([np.inf, -np.inf], np.nan)
+usgs_county_cons_1985_2015 = usgs_county_cons_1985_2015.dropna()
+
 
 # --- Melt the DataFrame to long format ---
 usgs_melted = usgs_county_cons_1985_2015.melt(
@@ -92,17 +100,6 @@ print(f"✅ Feather file successfully saved at:\n{output_path}")
 
 
 # ------------------------------ ML data preparation for 1960_1980 ---------------------------------------
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-try:
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-    from scripts.core_imports import *
-except ImportError:
-    print("Warning: 'core_imports' not found. Proceeding without it.")
-    pass
-
-
-random.seed(42)
 
 data_dir = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\data\proccessed_data"
 ml_data_dir = os.path.join(data_dir, "ML")
@@ -163,7 +160,7 @@ df_melted = usgs_1950_1980_state_cons_ratio_raw.melt(
     id_vars='STATE',
     var_name='Year',
     value_name='SL_cons_ratio'
-)
+).dropna()
 
 usgs_1950_1980_state_cons_ratio = df_melted.copy()
 
@@ -190,11 +187,11 @@ ML_data_prepared_all_1960_1980 = Annual_Climate_factors_County_Data_and_Ratios_1
     how='left'
 )
 
-# Fill NaN SL_cons_ratio with 0.0, as requested
-ML_data_prepared_all_1960_1980['SL_cons_ratio'] = (
-    ML_data_prepared_all_1960_1980['SL_cons_ratio'].fillna(0.0)
-)
-
+# # Fill NaN SL_cons_ratio with 0.0, as requested
+# ML_data_prepared_all_1960_1980['SL_cons_ratio'] = (
+#     ML_data_prepared_all_1960_1980['SL_cons_ratio'].fillna(0.0)
+# )
+ML_data_prepared_all_1960_1980 = ML_data_prepared_all_1960_1980.dropna()
 # ----------------------------------------------------------------------
 # --- 4. Save the Final DataFrame ---
 # ----------------------------------------------------------------------
@@ -206,6 +203,5 @@ print(f"\n✅ Successfully created and saved the final DataFrame.")
 print(f"   DataFrame Name: ML_data_prepared_all_1960_1980")
 print(f"   Saved to path: {output_path}")
 print(f"   Final DataFrame shape: {ML_data_prepared_all_1960_1980.shape}")
-
 if __name__ == '__main__':
     pass

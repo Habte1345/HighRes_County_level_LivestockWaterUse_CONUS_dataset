@@ -449,8 +449,6 @@ print("\n--- All Steps Complete: Data Loaded, Processed, Compiled, Interpolated,
 
 
 
-
-
 # ----------------- ML data prepared for each Livestock -----------------------------
 
 # Define the base data directory

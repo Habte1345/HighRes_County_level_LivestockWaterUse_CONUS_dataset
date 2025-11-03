@@ -12,7 +12,7 @@ except Exception:
 # Load the ERA5-LAND Monthly dataset
 dataset = (ee.ImageCollection("ECMWF/ERA5_LAND/MONTHLY_AGGR")
            .select(["dewpoint_temperature_2m", "total_precipitation_sum", "temperature_2m"])
-           .filterDate("2020-01-01", "2022-12-31"))
+           .filterDate("1960-01-01", "2022-12-31"))
 
 # --- Geospatial Feature Processing (Modified for Area) ---
 
@@ -169,8 +169,7 @@ def extractCounty_Zonal(image):
 
 # --- Data Fetching Loop (Modified to handle new properties) ---
 
-
-years = list(range(2020, 2023))
+years = list(range(1960, 2023))
 data_state = []
 data_county = []
 

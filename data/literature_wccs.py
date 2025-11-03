@@ -6,11 +6,16 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from scripts.core_imports import *
 
 # --------------- # Literature-based WCCs: A, BW, DMI, L --------------------
-
 class AnimalWaterConsumption:
     # === Beef Cattle Water Consumption ===
     def WCCs_Beef(self, body_weight_kg, temp, age_days, DMI):
         import math
+        # Adjusted ranges: typical feedlot/finished beef cattle
+        body_weight_kg = max(250, min(body_weight_kg, 750))  # 250–750 kg
+        temp = max(0, min(temp, 35))                         # 0–35 °C
+        age_days = max(180, min(age_days, 900))             # 6–30 months ≈ 180–900 days
+        DMI = max(1, min(DMI, 3))                           # 1–3 % of BW
+
         body_weight = body_weight_kg * 1000
         temp_points = [4, 18, 32]
         data = {1100: [30.5, 35.8, 45.4], 
@@ -37,13 +42,17 @@ class AnimalWaterConsumption:
         dmi_mult = 1 + (DMI / 10.0)
         age_mult = 1.0 if age_days >= 200 else 0.5 + 0.5 / (1 + math.exp(-(age_days - 90) / 30))
         WCCs = adjusted_base * temp_mult * dmi_mult * age_mult
-        # Clamp to realistic bounds: 18.93 L/d to 75.71 L/d
         WCCs = max(18.93, min(WCCs, 75.71))
         return round(WCCs, 2)
 
     # === Dairy Cattle Water Consumption ===
     def WCCCs_Dairy(self, body_weight_kg, temp_c, age_months, lactating, DMI):
         import math
+        body_weight_kg = max(250, min(body_weight_kg, 800))  # 250–800 kg
+        temp_c = max(0, min(temp_c, 35))                     # 0–35 °C
+        age_months = max(6, min(age_months, 72))            # 6–72 months
+        DMI = max(2, min(DMI, 4.5))                          # 2–4.5 %
+
         base_water = 50.0 
         if temp_c >= 15:
             temp_mult = 1 + 0.03 * (temp_c - 15)
@@ -52,23 +61,27 @@ class AnimalWaterConsumption:
         temp_mult = max(0.6, min(temp_mult, 3.5))
         lact_mult = 1.6 if lactating else 1.0
         dmi_mult = 1 + (DMI / 25.0)
-        age_days = age_months * 30.44  # More precise conversion
-        age_mult = 0.6 + 0.4 / (1 + math.exp(-(age_days - 180) / 90))  # Adjusted for smoother transition
+        age_days = age_months * 30.44
+        age_mult = 0.6 + 0.4 / (1 + math.exp(-(age_days - 180) / 90))
         bw_mult = (body_weight_kg / 650) ** 0.5
         WCCs = base_water * temp_mult * lact_mult * dmi_mult * age_mult + bw_mult
-        # Clamp to realistic bounds: 68.14 L/d to 246.05 L/d
         WCCs = max(68.14, min(WCCs, 246.05))
         return round(WCCs, 2)
 
     # === Swine Water Consumption ===
     def WCCs_Swine(self, body_weight_kg, temp_c, age_days, gestating, DMI):
         import math
+        body_weight_kg = max(30, min(body_weight_kg, 250))   # 30–250 kg
+        temp_c = max(0, min(temp_c, 35))                     # 0–35 °C
+        age_days = max(60, min(age_days, 1800))              # 2–60 months ≈ 60–1800 days
+        DMI = max(2, min(DMI, 5))                            # 2–5 %
+
         temp_points = [4, 18, 32]
         data = {22: [1.0, 1.5, 2.0],
                 36: [3.2, 3.8, 4.5],
                 70: [4.5, 5.1, 7.3],
                 110: [7.3, 9.0, 10.0]}
-        body_weights = [22, 36, 70, 110]  # Include all keys
+        body_weights = [22, 36, 70, 110]
         t_low = min(temp_points, key=lambda t: abs(t-temp_c))
         bw_low = min(body_weights, key=lambda bw: abs(bw-body_weight_kg))
 
@@ -87,13 +100,17 @@ class AnimalWaterConsumption:
         dmi_mult = 1 + (DMI)
         age_mult = 1.0 if age_days >= 180 else 0.6 + 0.4 / (1 + math.exp(-(age_days - 60) / 30))
         WCCs = adjusted_base * 0.32 + temp_mult * gest_mult * dmi_mult * age_mult
-        # Clamp to realistic bounds: 7.57 L/d to 37.85 L/d
         WCCs = max(7.57, min(WCCs, 37.85))
         return round(WCCs, 2)
 
     # === Chicken (Broiler) Water Consumption ===
     def WCCs_Chicken(self, age_weeks, body_weight_kg, temp_c, egg_layer, DMI):
         import math
+        age_weeks = max(1, min(age_weeks, 8))               # 1–8 weeks
+        body_weight_kg = max(0.1, min(body_weight_kg, 2.8)) # 0.1–2.8 kg
+        temp_c = max(0, min(temp_c, 35))                    # 0–35 °C
+        DMI = max(5, min(DMI, 12))                          # 5–12 % of BW
+
         temp_points = [21, 32]
         age_ranges = [(1, 4), (5, 12), (13, 20)]
         data = {(1, 4): [30, 50],
@@ -112,12 +129,12 @@ class AnimalWaterConsumption:
         temp_mult = max(0.5, min(temp_mult, 8.0))
         dmi_mult = 1 + (DMI / 5)
         egg_mult = 5 if egg_layer else 1.0
-        age_mult = 0.8 + 0.2 / (1 + math.exp(-(age_weeks - 6) / 3))  # Adjusted for realistic scaling
+        age_mult = 0.8 + 0.2 / (1 + math.exp(-(age_weeks - 6) / 3))
         bw_mult = (body_weight_kg / 2.0) ** 0.25
         WCCs = base_water * temp_mult * dmi_mult * egg_mult * age_mult * bw_mult
-        # Clamp to realistic bounds: 75.71 mL/d to 1135.62 mL/d
         WCCs = max(0.02, min(WCCs, 0.5))
         return round(WCCs, 2)
+
     
 # ------------ Generate sample  ----------------------
 
@@ -131,23 +148,23 @@ sample_size = 20000
 # Dairy Cattle
 dairy_data = []
 for _ in range(sample_size):
-    bw = random.uniform(200, 800)  # Adjusted for realistic dairy cattle weights
-    temp = random.uniform(-10, 40)  # Wider temp range
-    age_months = random.uniform(6, 60)  # Realistic age range
-    DMI = random.uniform(10, 30)  # Realistic DMI for dairy
+    bw = random.uniform(250, 800)          # 250–800 kg
+    temp = random.uniform(0, 35)           # 0–35 °C
+    age_months = random.uniform(6, 72)     # 6–72 months
+    DMI = random.uniform(2, 4.5)           # 2–4.5 % BW
     lactating = random.choice([True, False])
-    water = awc.WCCCs_Dairy(bw, temp, age_months, lactating, DMI) * 0.264172 # 0.264172 is to convert l/d to gal/d
+    water = awc.WCCCs_Dairy(bw, temp, age_months, lactating, DMI) * 0.264172
     dairy_data.append([round(age_months, 2), round(bw, 2), round(temp, 2), lactating, round(DMI, 2), water])
 df_dairy = pd.DataFrame(dairy_data, columns=['Age (months)', 'BW (kg)', 'Temp (°C)', 'Lactating', 'DMI', 'WCCs (L/d)'])
 
 # Beef Cattle
 beef_data = []
 for _ in range(sample_size):
-    bw = random.uniform(350, 750)
-    temp = random.uniform(-10, 40) 
-    age_days = random.uniform(30, 1000)
+    bw = random.uniform(250, 750)          # 250–750 kg
+    temp = random.uniform(0, 35)           # 0–35 °C
+    age_days = random.uniform(180, 900)    # 6–30 months ≈ 180–900 days
     age_months = age_days / 30.44
-    DMI = random.uniform(5, 25)
+    DMI = random.uniform(1, 3)             # 1–3 % BW
     water = awc.WCCs_Beef(bw, temp, age_days, DMI) * 0.264172
     beef_data.append([round(age_months, 2), round(bw, 2), round(temp, 2), round(DMI, 2), water])
 df_beef = pd.DataFrame(beef_data, columns=['Age (months)', 'BW (kg)', 'Temp (°C)', 'DMI', 'WCCs (L/d)'])
@@ -155,11 +172,11 @@ df_beef = pd.DataFrame(beef_data, columns=['Age (months)', 'BW (kg)', 'Temp (°C
 # Swine
 swine_data = []
 for _ in range(sample_size):
-    bw = random.uniform(20, 110)
-    temp = random.uniform(-10, 40) 
-    age_days = random.uniform(10, 360)
+    bw = random.uniform(30, 250)           # 30–250 kg
+    temp = random.uniform(0, 35)           # 0–35 °C
+    age_days = random.uniform(60, 1800)    # 2–60 months ≈ 60–1800 days
     age_months = age_days / 30.44
-    DMI = random.uniform(0.2, 5.0)
+    DMI = random.uniform(2, 5)             # 2–5 % BW
     gestating = random.choice([True, False])
     water = awc.WCCs_Swine(bw, temp, age_days, gestating, DMI) * 0.264172
     swine_data.append([round(age_months, 2), round(bw, 2), round(temp, 2), gestating, round(DMI, 2), water])
@@ -168,14 +185,64 @@ df_swine = pd.DataFrame(swine_data, columns=['Age (months)', 'BW (kg)', 'Temp (�
 # Chicken
 chicken_data = []
 for _ in range(sample_size):
-    age_weeks = random.uniform(1, 5)
-    body_weight = random.uniform(0.1, 4.0)
-    temp = random.uniform(-10, 40) 
-    DMI = random.uniform(0.02, 0.2)
+    age_weeks = random.uniform(1, 8)           # 1–8 weeks
+    body_weight = random.uniform(0.1, 2.8)     # 0.1–2.8 kg
+    temp = random.uniform(0, 35)               # 0–35 °C
+    DMI = random.uniform(5, 12)                # 5–12 % BW
     egg_layer = random.choice([True, False])
     water = awc.WCCs_Chicken(age_weeks, body_weight, temp, egg_layer, DMI) * 0.264172
     chicken_data.append([round(age_weeks, 2), round(body_weight, 2), round(temp, 2), egg_layer, round(DMI, 3), water])
 df_chicken = pd.DataFrame(chicken_data, columns=['Age (weeks)', 'BW (kg)', 'Temp (°C)', 'Egg Layer', 'DMI', 'WCCs (L/d)'])
+
+
+# # Dairy Cattle
+# dairy_data = []
+# for _ in range(sample_size):
+#     bw = random.uniform(200, 800)  # Adjusted for realistic dairy cattle weights
+#     temp = random.uniform(-10, 40)  # Wider temp range
+#     age_months = random.uniform(6, 60)  # Realistic age range
+#     DMI = random.uniform(10, 30)  # Realistic DMI for dairy
+#     lactating = random.choice([True, False])
+#     water = awc.WCCCs_Dairy(bw, temp, age_months, lactating, DMI) * 0.264172 # 0.264172 is to convert l/d to gal/d
+#     dairy_data.append([round(age_months, 2), round(bw, 2), round(temp, 2), lactating, round(DMI, 2), water])
+# df_dairy = pd.DataFrame(dairy_data, columns=['Age (months)', 'BW (kg)', 'Temp (°C)', 'Lactating', 'DMI', 'WCCs (L/d)'])
+
+# # Beef Cattle
+# beef_data = []
+# for _ in range(sample_size):
+#     bw = random.uniform(350, 750)
+#     temp = random.uniform(-10, 40) 
+#     age_days = random.uniform(30, 1000)
+#     age_months = age_days / 30.44
+#     DMI = random.uniform(5, 25)
+#     water = awc.WCCs_Beef(bw, temp, age_days, DMI) * 0.264172
+#     beef_data.append([round(age_months, 2), round(bw, 2), round(temp, 2), round(DMI, 2), water])
+# df_beef = pd.DataFrame(beef_data, columns=['Age (months)', 'BW (kg)', 'Temp (°C)', 'DMI', 'WCCs (L/d)'])
+
+# # Swine
+# swine_data = []
+# for _ in range(sample_size):
+#     bw = random.uniform(20, 110)
+#     temp = random.uniform(-10, 40) 
+#     age_days = random.uniform(10, 360)
+#     age_months = age_days / 30.44
+#     DMI = random.uniform(0.2, 5.0)
+#     gestating = random.choice([True, False])
+#     water = awc.WCCs_Swine(bw, temp, age_days, gestating, DMI) * 0.264172
+#     swine_data.append([round(age_months, 2), round(bw, 2), round(temp, 2), gestating, round(DMI, 2), water])
+# df_swine = pd.DataFrame(swine_data, columns=['Age (months)', 'BW (kg)', 'Temp (°C)', 'Gestating', 'DMI', 'WCCs (L/d)'])
+
+# # Chicken
+# chicken_data = []
+# for _ in range(sample_size):
+#     age_weeks = random.uniform(1, 5)
+#     body_weight = random.uniform(0.1, 4.0)
+#     temp = random.uniform(-10, 40) 
+#     DMI = random.uniform(0.02, 0.2)
+#     egg_layer = random.choice([True, False])
+#     water = awc.WCCs_Chicken(age_weeks, body_weight, temp, egg_layer, DMI) * 0.264172
+#     chicken_data.append([round(age_weeks, 2), round(body_weight, 2), round(temp, 2), egg_layer, round(DMI, 3), water])
+# df_chicken = pd.DataFrame(chicken_data, columns=['Age (weeks)', 'BW (kg)', 'Temp (°C)', 'Egg Layer', 'DMI', 'WCCs (L/d)'])
 
 
 # ................ # Develop MLR: Dairy, Beef, Hogs and Poultry: -----------------------------
@@ -288,15 +355,15 @@ analysis.run_analysis()
 
 # ----------------------- # Use MLR developed Equations: ----------------------
 
-n_samples = 10000  # number of WCCs to generate
+n_samples = 5000  # number of WCCs to generate
 
 def generate_wccs_only(n_samples, analysis):
     # --- Dairy ---
-    age_dairy = np.random.uniform(9, 50, n_samples)
-    bw_dairy = np.random.uniform(250, 750, n_samples)
-    temp_dairy = np.random.uniform(0, 30, n_samples)
+    age_dairy = np.random.uniform(6, 72, n_samples)       # 6–72 months
+    bw_dairy = np.random.uniform(250, 800, n_samples)     # 250–800 kg
+    temp_dairy = np.random.uniform(0, 35, n_samples)      # 0–35 °C
     lactating = np.random.choice([10, 15], n_samples)
-    dmi_dairy = np.random.uniform(2.5, 5, n_samples) # %
+    dmi_dairy = np.random.uniform(2, 4.5, n_samples)      # 2–4.5 %
     wccs_dairy = (analysis.get_coefficient('Dairy', 'intercept') +
                   analysis.get_coefficient('Dairy', 'Age (months)') * age_dairy +
                   analysis.get_coefficient('Dairy', 'BW (kg)') * bw_dairy +
@@ -307,10 +374,10 @@ def generate_wccs_only(n_samples, analysis):
     df_dairy = pd.DataFrame({'WCCs (L/d)': wccs_dairy})
 
     # --- Beef ---
-    age_beef = np.random.uniform(9, 30, n_samples)  # days to months
-    bw_beef = np.random.uniform(150, 950, n_samples)
-    temp_beef =np.random.uniform(0, 40, n_samples)
-    dmi_beef = np.random.uniform(0.5, 3.5, n_samples)
+    age_beef = np.random.uniform(6, 30, n_samples)        # 6–30 months
+    bw_beef = np.random.uniform(250, 750, n_samples)      # 250–750 kg
+    temp_beef = np.random.uniform(0, 35, n_samples)       # 0–35 °C
+    dmi_beef = np.random.uniform(1, 3, n_samples)         # 1–3 %
     dmi_temp_beef = dmi_beef * temp_beef
     wccs_beef = (analysis.get_coefficient('Beef', 'intercept') +
                  analysis.get_coefficient('Beef', 'Age (months)') * age_beef +
@@ -322,11 +389,11 @@ def generate_wccs_only(n_samples, analysis):
     df_beef = pd.DataFrame({'WCCs (L/d)': wccs_beef})
 
     # --- Swine ---
-    age_swine = np.random.uniform(10, 50, n_samples)  # days to months
-    bw_swine = np.random.uniform(80, 135, n_samples)
-    temp_swine = np.random.uniform(0, 40, n_samples)
+    age_swine = np.random.uniform(2, 60, n_samples)       # 2–60 months
+    bw_swine = np.random.uniform(30, 250, n_samples)      # 30–250 kg
+    temp_swine = np.random.uniform(0, 35, n_samples)      # 0–35 °C
     gestating = np.random.choice([0, 1], n_samples, p=[0.5, 0.5])
-    dmi_swine = np.random.uniform(0.5, 2.5, n_samples)
+    dmi_swine = np.random.uniform(2, 5, n_samples)        # 2–5 %
     dmi_temp_swine = dmi_swine * temp_swine
     wccs_swine = (analysis.get_coefficient('Swine', 'intercept') +
                   analysis.get_coefficient('Swine', 'Age (months)') * age_swine +
@@ -339,10 +406,10 @@ def generate_wccs_only(n_samples, analysis):
     df_swine = pd.DataFrame({'WCCs (L/d)': wccs_swine})
 
     # --- Poultry ---
-    age_poultry = np.random.uniform(1, 5, n_samples)  # weeks
-    bw_poultry = np.random.uniform(1.2, 4.0, n_samples)
-    temp_poultry = np.random.uniform(18, 36, n_samples)
-    dmi_poultry = np.random.uniform(0.5, 2.5, n_samples)
+    age_poultry = np.random.uniform(1, 8, n_samples)      # 1–8 weeks
+    bw_poultry = np.random.uniform(0.1, 2.8, n_samples)   # 0.1–2.8 kg
+    temp_poultry = np.random.uniform(0, 35, n_samples)    # 0–35 °C
+    dmi_poultry = np.random.uniform(5, 12, n_samples)     # 5–12 % of BW
     dmi_bw_poultry = dmi_poultry * bw_poultry
     wccs_poultry = (analysis.get_coefficient('Poultry', 'intercept') +
                     analysis.get_coefficient('Poultry', 'Age (weeks)') * age_poultry +
@@ -350,6 +417,7 @@ def generate_wccs_only(n_samples, analysis):
                     analysis.get_coefficient('Poultry', 'Temp (°C)') * temp_poultry +
                     analysis.get_coefficient('Poultry', 'DMI') * dmi_poultry +
                     analysis.get_coefficient('Poultry', 'DMI_BW') * dmi_bw_poultry)
+
     
     df_poultry = pd.DataFrame({'WCCs (L/d)': wccs_poultry})
 

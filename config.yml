@@ -1,0 +1,34 @@
+# config.yml
+# --- Configuration for High-Resolution Livestock Water Use Modeling ---
+
+# NOTE: The scripts models.py and usgs_cons_ratio_generator.py use hardcoded paths,
+# but this config file will be used by the main runner script for organization 
+# and for any future modular components.
+
+# --- Base Directories ---
+BASE_DIR: C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset
+SCRIPTS_DIR: ${BASE_DIR}/scripts
+DATA_DIR: ${BASE_DIR}/data/proccessed_data
+RESULTS_DIR: ${BASE_DIR}/Results
+CONFIG_DIR: ${BASE_DIR}/config
+SHAPEFILE_DIR: C:\Users\hdagne1\Box\Dr.Mesfin Research\Data\CONUS_geometries\CONUS_Counties
+
+# --- Script Paths ---
+# The main controller will execute these validated scripts sequentially.
+SCRIPT_PATHS:
+  PHASE_1_DATA_PREP: ${SCRIPTS_DIR}/usgs_cons_ratio_generator.py
+  PHASE_2_MODELING_AND_CALCULATION: ${SCRIPTS_DIR}/models.py
+
+# --- Execution Parameters ---
+# These parameters are provided for reference/future use, but the scripts' internal logic
+# (epochs, features, splits) remains self-contained within the .py files as per your request.
+EXECUTION_SETTINGS:
+  RANDOM_SEED: 42
+  LIVESTOCK_TYPES:
+    - dairy
+    - beef
+    - hogs
+    - poultry
+  
+  # Final calculation settings from models.py
+  WCC_CONVERSION_FACTOR: 0.2642
