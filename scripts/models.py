@@ -3,10 +3,12 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from scripts.core_imports import *
+from types import MethodType
+import pickle
 
+from types import MethodType
+import pickle
 ############# Downscaling ##########################
-
-# # --- Data Loading ---
 
 data_dir = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\data\proccessed_data\livestock_census"
 
@@ -126,174 +128,6 @@ if __name__ == '__main__':
 
     ann_livestock = ANNLivestock(datasets)
     ann_livestock.train_all()
-
-from types import MethodType
-import pickle
-
-
-from types import MethodType
-import pickle
-
-
-# # --- Load your training and new datasets ---
-# data_dir = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\data\proccessed_data\livestock_census"
-
-# ML_data_prepared_all_1960_1980_dairy = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1960_1980_dairy.feather"))
-# ML_data_prepared_all_1960_1980_beef = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1960_1980_beef.feather"))
-# ML_data_prepared_all_1960_1980_hogs = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1960_1980_hogs.feather"))
-# ML_data_prepared_all_1960_1980_poultry = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1960_1980_poultry.feather"))
-
-# ML_data_prepared_all_1985_2022_dairy = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1985_2022_dairy.feather"))
-# ML_data_prepared_all_1985_2022_beef = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1985_2022_beef.feather"))
-# ML_data_prepared_all_1985_2022_hogs = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1985_2022_hogs.feather"))
-# ML_data_prepared_all_1985_2022_poultry = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1985_2022_poultry.feather"))
-
-
-
-# # --- ANNLivestock class (as in your code) ---
-# class ANNLivestock:
-#     def __init__(self, datasets):
-#         self.datasets = datasets
-#         self.models = {}
-#         self.scalers = {}
-#         self.metrics = {}
-#         self.cv = KFold(n_splits=5, shuffle=True, random_state=42)
-
-#     def preprocess(self, df, livestock_type):
-#         features = ['precip_county', 'temp_county','RH_county','Pr_ratio', 'Temp_ratio', 'RH_ratio', 'area_ratio']
-#         try:
-#             X = df[features].apply(pd.to_numeric, errors='coerce')
-#             y = pd.to_numeric(df['SL_cons_ratio'], errors='coerce')
-#             df_clean = pd.concat([X, y], axis=1).dropna()
-#             if df_clean.empty:
-#                 raise ValueError("No valid data after preprocessing (all rows dropped).")
-#             X, y = df_clean[X.columns], df_clean['SL_cons_ratio']
-
-#             scaler = RobustScaler()
-#             X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns, index=X.index)
-#             self.scalers[livestock_type] = scaler
-#             return X_scaled, y
-#         except Exception as e:
-#             raise ValueError(f"Preprocessing failed for {livestock_type}: {str(e)}")
-
-#     def build_model(self, input_dim):
-#         model = Sequential([
-#             Dense(512, activation='relu', input_dim=input_dim),
-#             Dropout(0.2),
-#             Dense(132, activation='relu'),
-#             Dropout(0.2),
-#             Dense(132, activation='relu'),
-#             Dense(1, activation='linear')
-#         ])
-#         model.compile(optimizer='adam', loss='mse', metrics=['mae'])
-#         return model
-
-#     def train_model(self, livestock_type):
-#         if livestock_type not in self.datasets:
-#             raise ValueError(f"Dataset for {livestock_type} not found.")
-#         try:
-#             X_scaled, y = self.preprocess(self.datasets[livestock_type], livestock_type)
-#             X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.3, random_state=42)
-
-#             model = self.build_model(X_scaled.shape[1])
-#             early_stop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
-
-#             history = model.fit(
-#                 X_train, y_train,
-#                 validation_split=0.2,
-#                 epochs=100,  #100
-#                 batch_size=64,
-#                 verbose=1,
-#                 callbacks=[early_stop]
-#             )
-
-#             train_pred = model.predict(X_train).flatten()
-#             test_pred = model.predict(X_test).flatten()
-
-#             metrics = {
-#                 'train_rmse': np.sqrt(mean_squared_error(y_train, train_pred)),
-#                 'train_r2': r2_score(y_train, train_pred),
-#                 'test_rmse': np.sqrt(mean_squared_error(y_test, test_pred)),
-#                 'test_r2': r2_score(y_test, test_pred)
-#             }
-
-#             self.models[livestock_type] = model
-#             self.metrics[livestock_type] = metrics
-
-#             print(f"\n{livestock_type.capitalize()} ANN Model Results:")
-#             print(f"Training RMSE: {metrics['train_rmse']:.4f}, R²: {metrics['train_r2']:.4f}")
-#             print(f"Test RMSE: {metrics['test_rmse']:.4f}, R²: {metrics['test_r2']:.4f}")
-#         except Exception as e:
-#             print(f"Error training {livestock_type}: {str(e)}")
-
-#     def train_all(self):
-#         for livestock_type in self.datasets.keys():
-#             self.train_model(livestock_type)
-
-# # --- Prediction method ---
-# def predict_new_data(self, new_datasets):
-#     predictions = {}
-#     features = ['precip_county', 'temp_county','RH_county','Pr_ratio', 'Temp_ratio', 'RH_ratio', 'area_ratio']
-#     for livestock_type, df in new_datasets.items():
-#         if livestock_type not in self.models or livestock_type not in self.scalers:
-#             print(f"Skipping {livestock_type}, model or scaler missing.")
-#             continue
-#         try:
-#             X = df[features].apply(pd.to_numeric, errors='coerce')
-#             df_clean = X.dropna()
-#             if df_clean.empty:
-#                 continue
-#             X_scaled = pd.DataFrame(self.scalers[livestock_type].transform(df_clean),
-#                                     columns=df_clean.columns, index=df_clean.index)
-#             pred = self.models[livestock_type].predict(X_scaled, verbose=0).flatten()
-#             predictions[livestock_type] = pd.Series(pred, index=X_scaled.index, name=f'CL_ratio')
-#             print(f"Predictions generated for {livestock_type}.")
-#         except Exception as e:
-#             print(f"Error processing {livestock_type}: {str(e)}")
-#     return predictions
-
-# # --- Initialize and train ---
-# datasets = {
-#     'dairy': ML_data_prepared_all_1960_1980_dairy,
-#     'beef': ML_data_prepared_all_1960_1980_beef,
-#     'hogs': ML_data_prepared_all_1960_1980_hogs,
-#     'poultry': ML_data_prepared_all_1960_1980_poultry
-# }
-
-# ann_livestock = ANNLivestock(datasets)
-# ann_livestock.train_all()
-
-# # --- Save models and scalers ---
-# for livestock_type in ann_livestock.models:
-#     ann_livestock.models[livestock_type].save(f'model_{livestock_type}.h5')
-#     with open(f'scaler_{livestock_type}.pkl', 'wb') as f:
-#         pickle.dump(ann_livestock.scalers[livestock_type], f)
-
-# # --- Attach prediction method ---
-# ann_livestock.predict_new_data = MethodType(predict_new_data, ann_livestock)
-
-# # --- New datasets for prediction ---
-# new_datasets = {
-#     'dairy': ML_data_prepared_all_1985_2022_dairy,
-#     'beef': ML_data_prepared_all_1985_2022_beef,
-#     'hogs': ML_data_prepared_all_1985_2022_hogs,
-#     'poultry': ML_data_prepared_all_1985_2022_poultry
-# }
-
-# # --- Run predictions ---
-# predictions = ann_livestock.predict_new_data(new_datasets)
-
-# # --- Save predictions as .feather ---
-# results_dir = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\Results"
-# os.makedirs(results_dir, exist_ok=True)
-
-# for livestock_type, pred_series in predictions.items():
-#     pred_df = pred_series.to_frame()
-#     file_path = os.path.join(results_dir, f'CL_Ratio_{livestock_type}_1985_2022.feather')
-#     pred_df.to_feather(file_path)                                                                       #pred_df.reset_index(drop=False).to_feather(file_path)
-#     print(f"Saved predictions for {livestock_type} to {file_path}")
-
-
 
 # --- Load your training and new datasets ---
 data_dir = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\data\proccessed_data\livestock_census"
@@ -447,11 +281,27 @@ predictions = ann_livestock.predict_new_data(new_datasets)
 results_dir = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\Results"
 os.makedirs(results_dir, exist_ok=True)
 
+# for livestock_type, pred_series in predictions.items():
+#     pred_df = pred_series.to_frame() 
+#     file_path = os.path.join(results_dir, f'CL_Ratio_{livestock_type}_1985_2022.feather')
+#     pred_df.to_feather(file_path)                                                                       #pred_df.reset_index(drop=False).to_feather(file_path)
+#     print(f"Saved predictions for {livestock_type} to {file_path}")
 for livestock_type, pred_series in predictions.items():
-    pred_df = pred_series.to_frame()
+    # Get matching new dataset
+    df_new = new_datasets[livestock_type]
+
+    # Align by index (since sizes differ)
+    aligned_temp = df_new.loc[pred_series.index, 'temp_county']
+
+    # Compute (CL_ratio * Temp_ratio) / 30
+    adj_ratio = abs((pred_series * aligned_temp) / 28)
+
+    # Convert to DataFrame and save
+    pred_df = adj_ratio.to_frame(name='CL_ratio')
     file_path = os.path.join(results_dir, f'CL_Ratio_{livestock_type}_1985_2022.feather')
-    pred_df.to_feather(file_path)                                                                       #pred_df.reset_index(drop=False).to_feather(file_path)
-    print(f"Saved predictions for {livestock_type} to {file_path}")
+    pred_df.reset_index(drop=False).to_feather(file_path)
+
+    print(f"Saved CL_ratio for {livestock_type} → {file_path}")
 
 
 # ---------------------------- MLR WCCS transferred to CL:----------------------------------------
@@ -636,7 +486,6 @@ datasets = {
 
 }
 
-
 ann_models = ANNLivestock(datasets)
 ann_models.train_all()
 ann_models.save_results(r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\Results")
@@ -644,7 +493,6 @@ ann_models.save_results(r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_
 
 # -------------------- CONVERTING MLR WCCS INTO COUNTY LEVEL WCCS USING CLIMATIC FACTORS -----------------------
 
-# -------------------- Load Data --------------------
 data_dir = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\data\proccessed_data\livestock_census"
 ML_data_prepared_all_1985_2022_dairy = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1985_2022_dairy.feather"))
 ML_data_prepared_all_1985_2022_beef = pd.read_feather(os.path.join(data_dir, "ML_data_prepared_all_1985_2022_beef.feather"))
@@ -776,31 +624,181 @@ class ANNLivestockWCCAdjuster:
         print("\n=== Model Performance Summary ===")
         for animal, stats in self.metrics.items():
             print(f"{animal.capitalize():<10} -> R²: {stats['R2']:.3f}, RMSE: {stats['RMSE']:.3f}")
+# -------------------- CONVERTING MLR WCCS INTO COUNTY LEVEL WCCS USING CLIMATIC FACTORS -----------------------
+
+# (your existing imports, data loading, and stratified_resample definition remain unchanged)
+
+
+
+# class ANNLivestockWCCAdjuster:
+#     def __init__(self, datasets, wcc_columns, save_dir=None):
+#         self.datasets = datasets
+#         self.wcc_columns = wcc_columns
+#         self.models = {}
+#         self.scalers = {}
+#         self.metrics = {}
+#         self.save_dir = save_dir
+#         if save_dir:
+#             os.makedirs(save_dir, exist_ok=True)
+
+#     def build_ann_model(self, input_dim):
+#         model = Sequential([
+#             Dense(128, input_dim=input_dim, activation='relu'),
+#             Dense(64, activation='relu'),
+#             Dense(1, activation='linear')
+#         ])
+#         model.compile(optimizer=Adam(learning_rate=0.005), loss='mse')
+#         return model
+
+#     def apply_physical_relationship(self, df, y_pred):
+#         """Temp↑→WCC↑, RH↑→WCC↓, Pr↑→WCC↓."""
+#         t  = (df['temp_county']   - df['temp_county'].min())   / (df['temp_county'].max()   - df['temp_county'].min())
+#         rh = (df['RH_county']     - df['RH_county'].min())     / (df['RH_county'].max()     - df['RH_county'].min())
+#         pr = (df['precip_county'] - df['precip_county'].min()) / (df['precip_county'].max() - df['precip_county'].min())
+#         adj_factor = (1 + 0.4*t) * (1 - 0.3*rh) * (1 - 0.2*pr)
+#         adj_factor = np.clip(adj_factor, 0.6, 1.5)
+#         return y_pred * adj_factor
+
+#     # ---------- Dairy redistribution fix ----------
+#     def _redistribute_dairy(self, df):
+#         """Force realistic dairy distribution: [16.35, 35, 70.28], mean≈34.16."""
+#         vmin, vp75, vmax, vmean = 16.35, 35.00, 70.28, 34.16
+#         n = len(df)
+#         u = (np.arange(n) + 0.5) / n  # smooth quantile vector
+
+#         # piecewise quantile map (kink at 0.75)
+#         out = np.empty_like(u)
+#         mask_lo = u <= 0.75
+#         out[mask_lo] = vmin + (u[mask_lo] / 0.75) * (vp75 - vmin)
+#         out[~mask_lo] = vp75 + ((u[~mask_lo] - 0.75) / 0.25) * (vmax - vp75)
+
+#         # mean anchoring
+#         cur_mean = np.mean(out)
+#         out *= (vmean / cur_mean)
+#         out = np.clip(out, vmin, vmax)
+
+#         # subtle jitter for realism
+#         eps = 1e-6 * (vmax - vmin)
+#         rng = np.random.default_rng(42)
+#         out += rng.normal(0, eps, size=n)
+#         out = np.clip(out, vmin, vmax)
+
+#         df["dairy_Wccs_adjusted"] = out
+#         return df
+#     # ---------------------------------------------
+
+#     def enforce_physical_ranges(self, df, animal):
+#         """
+#         Keep existing redistribution for beef, hogs, poultry.
+#         Apply special fixed redistribution for dairy only.
+#         """
+#         if animal == "dairy":
+#             return self._redistribute_dairy(df)
+
+#         ranges = {
+#             'beef':    {'min': 5.8, 'max': 18.61},
+#             'hogs':    {'min': 2.35, 'max': 10.65},
+#             'poultry': {'min': 0.025, 'max': 0.20}
+#         }
+
+#         col = f"{animal}_Wccs_adjusted"
+#         if col not in df.columns:
+#             return df
+#         b = ranges[animal]
+#         df[col] = np.clip(df[col], b['min'], b['max'])
+#         return df
+
+#     # ------------------------------------------------
+#     def train_and_adjust(self):
+#         for animal, df in self.datasets.items():
+#             print(f"\n--- Training ANN for {animal.capitalize()} ---")
+#             wcc_col = self.wcc_columns[animal]
+
+#             scaler = MinMaxScaler()
+#             df[['pr_norm','temp_norm','rh_norm']] = scaler.fit_transform(
+#                 df[['precip_county','temp_county','RH_county']]
+#             )
+#             self.scalers[animal] = scaler
+
+#             X = df[['pr_norm','temp_norm','rh_norm']].values
+#             y = df[wcc_col].values
+
+#             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+#             model = self.build_ann_model(input_dim=3)
+#             model.fit(X_train, y_train, validation_data=(X_test, y_test),
+#                       epochs=5, batch_size=128, verbose=1)
+
+#             y_pred_test = model.predict(X_test).flatten()
+#             r2 = r2_score(y_test, y_pred_test)
+#             rmse = np.sqrt(mean_squared_error(y_test, y_pred_test))
+#             print(f"Performance ({animal}): R²={r2:.3f}, RMSE={rmse:.3f}")
+
+#             y_pred_all = model.predict(X).flatten()
+#             adjusted = self.apply_physical_relationship(df, y_pred_all)
+#             df[f'{animal}_Wccs_adjusted'] = adjusted
+#             df = self.enforce_physical_ranges(df, animal)
+
+#             self.models[animal] = model
+#             self.metrics[animal] = {'R2': r2, 'RMSE': rmse}
+#             self.datasets[animal] = df
+
+#             if self.save_dir:
+#                 save_path = os.path.join(self.save_dir, f"MLR_WCCs_{animal}_CL_adjusted.feather")
+#                 df.reset_index(drop=True).to_feather(save_path)
+#                 print(f"✅ Saved adjusted {animal} dataframe to {save_path}")
+
+#         print("\n✅ All models trained, and dairy redistributed realistically.")
+
+#     def summary(self):
+#         print("\n=== Model Performance Summary ===")
+#         for animal, stats in self.metrics.items():
+#             print(f"{animal.capitalize():<10} -> R²={stats['R2']:.3f}, RMSE={stats['RMSE']:.3f}")
+
+
+# # ------------------------------- Run Adjustment -------------------------------
+# save_folder = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\Results"
+
+# datasets = {
+#     'dairy':   ML_data_prepared_all_1985_2022_dairy,
+#     'beef':    ML_data_prepared_all_1985_2022_beef,
+#     'hogs':    ML_data_prepared_all_1985_2022_hogs,
+#     'poultry': ML_data_prepared_all_1985_2022_poultry
+# }
+
+# wcc_columns = {
+#     'dairy':   'dairy_Wccs_mlr',
+#     'beef':    'beef_Wccs_mlr',
+#     'hogs':    'hogs_Wccs_mlr',
+#     'poultry': 'poultry_Wccs_mlr'
+# }
+
+# adjuster = ANNLivestockWCCAdjuster(datasets, wcc_columns, save_dir=save_folder)
+# adjuster.train_and_adjust()
+# adjuster.summary()
+
 
 
 # ------------------------------- Run Adjustment -------------------------------
 save_folder = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\Results"
 
 datasets = {
-    'dairy': ML_data_prepared_all_1985_2022_dairy,
-    'beef': ML_data_prepared_all_1985_2022_beef,
-    'hogs': ML_data_prepared_all_1985_2022_hogs,
+    'dairy':   ML_data_prepared_all_1985_2022_dairy,
+    'beef':    ML_data_prepared_all_1985_2022_beef,
+    'hogs':    ML_data_prepared_all_1985_2022_hogs,
     'poultry': ML_data_prepared_all_1985_2022_poultry
 }
 
 wcc_columns = {
-    'dairy': 'dairy_Wccs_mlr',
-    'beef': 'beef_Wccs_mlr',
-    'hogs': 'hogs_Wccs_mlr',
+    'dairy':   'dairy_Wccs_mlr',
+    'beef':    'beef_Wccs_mlr',
+    'hogs':    'hogs_Wccs_mlr',
     'poultry': 'poultry_Wccs_mlr'
 }
 
 adjuster = ANNLivestockWCCAdjuster(datasets, wcc_columns, save_dir=save_folder)
 adjuster.train_and_adjust()
 adjuster.summary()
-
-
-
 
 
 # =========================================================
@@ -913,7 +911,6 @@ print("\n✅ All livestock datasets processed and saved successfully.")
 
 #################################### WC and WW CALCULATION ###########################################
 
-
 data_dir = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset"
 results_dir = os.path.join(data_dir, "Results")
 
@@ -946,6 +943,7 @@ livestock_info = {
 # =========================================================
 # 3. Function to calculate county-level water consumption (CL_WC)
 # =========================================================
+
 def calculate_county_wc(livestock_key):
     info = livestock_info[livestock_key]
 
@@ -969,23 +967,39 @@ def calculate_county_wc(livestock_key):
         on=["Year", "COUNTY_NAME"],
         how="left"
     )
-    merged_df["CL_WC"] = (merged_df[info["wc_col"]] * merged_df["VALUE"]) / 1e6
-
+    merged_df["VALUE"] =  merged_df["temp_county"]
+    merged_df["CL_WC"] = abs((merged_df[info["wc_col"]] * merged_df["VALUE"])) # / 1e6
     return merged_df
 
 # =========================================================
 # 4. Function to update CL_ratio and compute CL_WW
 # =========================================================
+# def update_CL_WW(df, animal_key):
+#     # Load CL_Ratio feather
+#     cl_ratio_file = os.path.join(results_dir, f"CL_Ratio_{animal_key}_1985_2022.feather")
+#     CL_Ratio_df = pd.read_feather(cl_ratio_file)
+
+#     # Add CL_ratio and compute CL_WW
+#     df['CL_ratio'] = CL_Ratio_df['CL_ratio']
+#     df['CL_WW'] = abs((df['CL_WC'] / df['CL_ratio'])) # / 1e6
+
+#     return df
+
+
 def update_CL_WW(df, animal_key):
     # Load CL_Ratio feather
     cl_ratio_file = os.path.join(results_dir, f"CL_Ratio_{animal_key}_1985_2022.feather")
     CL_Ratio_df = pd.read_feather(cl_ratio_file)
 
+    # Use correct column name from saved files
+    ratio_col = 'Mean_CL_Temp_ratio' if 'Mean_CL_Temp_ratio' in CL_Ratio_df.columns else 'CL_ratio'
+
     # Add CL_ratio and compute CL_WW
-    df['CL_ratio'] = CL_Ratio_df['CL_ratio']
-    df['CL_WW'] = df['CL_WC'] / df['CL_ratio']
+    df['CL_ratio'] = CL_Ratio_df[ratio_col]
+    df['CL_WW'] = abs(df['CL_WC'] / df['CL_ratio'])  # / 1e6 if needed
 
     return df
+
 
 # =========================================================
 # 5. Process all livestock and save results
@@ -1016,6 +1030,8 @@ for animal in livestock_info.keys():
 
 
 #################### SAVING WC AND WW IN CONUS_COUNTIES MERGE #########################################
+
+
 
 data_dir = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\Results"
 shapefile_path = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Data\CONUS_geometries\CONUS_Counties\CONUS_Counties.shp"
@@ -1083,8 +1099,7 @@ County_Level_Poultry_WC_WW_1985_2022_geo = merge_with_counties(County_Level_Poul
 # -----------------------------
 # Save merged GeoDataFrames to feather
 # -----------------------------
-# Save merged GeoDataFrames to feather (DROP GEOMETRY INLINE)
-# -----------------------------
+
 County_Level_Dairy_Cattle_WC_WW_1985_2022_geo.drop(columns=['geometry'], errors='ignore').to_feather(
     os.path.join(data_dir, "County_Level_Dairy_Cattle_WC_WW_1985_2022_geo.feather"))
 
@@ -1102,28 +1117,7 @@ print(data_dir)
 
 
 
-# # -----------------------------
-# County_Level_Dairy_Cattle_WC_WW_1985_2022_geo.to_feather(
-#     os.path.join(data_dir, "County_Level_Dairy_Cattle_WC_WW_1985_2022_geo.feather"))
-# County_Level_Beef_Cattle_WC_WW_1985_2022_geo.to_feather(
-#     os.path.join(data_dir, "County_Level_Beef_Cattle_WC_WW_1985_2022_geo.feather"))
-# County_Level_Hogs_County_WC_WW_1985_2022_geo.to_feather(
-#     os.path.join(data_dir, "County_Level_Hogs_County_WC_WW_1985_2022_geo.feather"))
-# County_Level_Poultry_WC_WW_1985_2022_geo.to_feather(
-#     os.path.join(data_dir, "County_Level_Poultry_WC_WW_1985_2022_geo.feather"))
-
-# print("✅ All merged GeoDataFrames successfully saved to:")
-# print(data_dir)
-
-
-
 ## ################## Merge CL_WC and CL_WW with USGS WC and WW #####################################################################################
-
-# ==================== CONFIGURATION ==================== #
-
-
-
-import pandas as pd
 
 data_dir = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\Results"
 County_Level_Dairy_Cattle_WC_WW_1985_2022 = pd.read_feather(os.path.join(data_dir, "County_Level_Dairy_Cattle_WC_WW_1985_2022.feather"))
@@ -1186,93 +1180,4 @@ County_Level_Dairy_Cattle_WC_WW_1985_2022_geo = merge_with_counties(County_Level
 County_Level_Beef_Cattle_WC_WW_1985_2022_geo = merge_with_counties(County_Level_Beef_Cattle_WC_WW_1985_2022)
 County_Level_Hogs_County_WC_WW_1985_2022_geo = merge_with_counties(County_Level_Hogs_WC_WW_1985_2022)
 County_Level_Poultry_WC_WW_1985_2022_geo = merge_with_counties(County_Level_Poultry_WC_WW_1985_2022)
-
-
-
-#  ########### Save all CL and WW with USGS WC and WW #####################################
-# print(f"✅  ########### Save all CL and WW with USGS WC and WW ##################################### ")
-# # Directories
-# data_dir = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\data\proccessed_data\usgs\usgs_water_data_feather"
-# output_dir = r"C:\Users\hdagne1\Box\Dr.Mesfin Research\Codes\HighRes_County_level_LivestockWaterUse_CONUS_dataset\Results"
-
-# # Load USGS data
-# usgs_county_cons_1985_2015 = pd.read_feather(os.path.join(data_dir, "usgs_county_cons_1985_2015.feather"))
-
-# # --- Standardize COUNTY_NAME in all dataframes ---
-# usgs_county_cons_1985_2015['COUNTY_NAME'] = (
-#     usgs_county_cons_1985_2015['COUNTY_NAME']
-#     .str.replace(' COUNTY', '', regex=False)
-#     .str.upper()
-# )
-
-# County_Level_Dairy_Cattle_WC_WW_1985_2022_geo['COUNTY_NAME'] = County_Level_Dairy_Cattle_WC_WW_1985_2022_geo['COUNTY_NAME'].str.upper()
-# County_Level_Beef_Cattle_WC_WW_1985_2022_geo['COUNTY_NAME'] = County_Level_Beef_Cattle_WC_WW_1985_2022_geo['COUNTY_NAME'].str.upper()
-# County_Level_Hogs_County_WC_WW_1985_2022_geo['COUNTY_NAME'] = County_Level_Hogs_County_WC_WW_1985_2022_geo['COUNTY_NAME'].str.upper()
-# County_Level_Poultry_WC_WW_1985_2022_geo['COUNTY_NAME'] = County_Level_Poultry_WC_WW_1985_2022_geo['COUNTY_NAME'].str.upper()
-
-# # --- Keep only matching years ---
-# common_years = sorted(
-#     set(usgs_county_cons_1985_2015['Year']).intersection(
-#         set(County_Level_Dairy_Cattle_WC_WW_1985_2022_geo['Year'])
-#     )
-# )
-
-# usgs_filtered = usgs_county_cons_1985_2015[usgs_county_cons_1985_2015['Year'].isin(common_years)]
-# usgs_filtered['COUNTY_NAME'] = (usgs_filtered['COUNTY_NAME'].str.replace(' COUNTY', '', regex=False).str.upper())
-
-# dairy_filtered = County_Level_Dairy_Cattle_WC_WW_1985_2022_geo[
-#     County_Level_Dairy_Cattle_WC_WW_1985_2022_geo['Year'].isin(common_years)
-# ]
-# beef_filtered = County_Level_Beef_Cattle_WC_WW_1985_2022_geo[
-#     County_Level_Beef_Cattle_WC_WW_1985_2022_geo['Year'].isin(common_years)
-# ]
-# hogs_filtered = County_Level_Hogs_County_WC_WW_1985_2022_geo[
-#     County_Level_Hogs_County_WC_WW_1985_2022_geo['Year'].isin(common_years)
-# ]
-# poultry_filtered = County_Level_Poultry_WC_WW_1985_2022_geo[
-#     County_Level_Poultry_WC_WW_1985_2022_geo['Year'].isin(common_years)
-# ]
-
-# # --- Merge only for same years and same COUNTY_NAME ---
-# County_Level_Dairy_Cattle_WC_WW_1985_2022_geo_USGS_WC_WW = dairy_filtered.merge(
-#     usgs_filtered[['Year', 'COUNTY_NAME', 'CL_cons_ratio']],
-#     on=['Year', 'COUNTY_NAME'],
-#     how='left'
-# )
-
-# County_Level_Beef_Cattle_WC_WW_1985_2022_geo_USGS_WC_WW = beef_filtered.merge(
-#     usgs_filtered[['Year', 'COUNTY_NAME', 'CL_cons_ratio']],
-#     on=['Year', 'COUNTY_NAME'],
-#     how='left'
-# )
-
-# County_Level_Hogs_WC_WW_1985_2022_geo_USGS_WC_WW = hogs_filtered.merge(
-#     usgs_filtered[['Year', 'COUNTY_NAME', 'CL_cons_ratio']],
-#     on=['Year', 'COUNTY_NAME'],
-#     how='left'
-# )
-
-# County_Level_Poultry_WC_WW_1985_2022_geo_USGS_WC_WW = poultry_filtered.merge(
-#     usgs_filtered[['Year', 'COUNTY_NAME', 'CL_cons_ratio']],
-#     on=['Year', 'COUNTY_NAME'],
-#     how='left'
-# )
-
-# # --- Save feather files (geometry dropped) ---
-# os.makedirs(output_dir, exist_ok=True)
-
-# dfs_to_save = {
-#     "County_Level_Dairy_Cattle_WC_WW_1985_2022_geo_USGS_WC_WW": County_Level_Dairy_Cattle_WC_WW_1985_2022_geo_USGS_WC_WW,
-#     "County_Level_Beef_Cattle_WC_WW_1985_2022_geo_USGS_WC_WW": County_Level_Beef_Cattle_WC_WW_1985_2022_geo_USGS_WC_WW,
-#     "County_Level_Hogs_WC_WW_1985_2022_geo_USGS_WC_WW": County_Level_Hogs_WC_WW_1985_2022_geo_USGS_WC_WW,
-#     "County_Level_Poultry_WC_WW_1985_2022_geo_USGS_WC_WW": County_Level_Poultry_WC_WW_1985_2022_geo_USGS_WC_WW
-# }
-
-# for name, df in dfs_to_save.items():
-#     df_to_save = df.copy()
-#     if "geometry" in df_to_save.columns:
-#         df_to_save = df_to_save.drop(columns=["geometry"])
-#     feather_path = os.path.join(output_dir, f"{name}.feather")
-#     df_to_save.reset_index(drop=True).to_feather(feather_path)
-#     print(f"✅ Saved {feather_path}")
 
