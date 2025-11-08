@@ -42,3 +42,10 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.optimizers import Adam
+
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes # For inset plot
+import proplot as pplt # Assuming pplt is proplot
+import geopandas as gpd # Assuming CONUS_counties and other dataframes are GeoDataFrames
+import numpy as np
